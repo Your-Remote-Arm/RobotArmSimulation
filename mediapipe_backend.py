@@ -1,6 +1,7 @@
 import cv2
 import mediapipe as mp
 import requests
+import time
 
 mp_hands = mp.solutions.hands
 hands = mp_hands.Hands(
@@ -41,21 +42,11 @@ try:
         # Print out the normalized (x, y, z, visibility) tuples.
         print(landmark_dict)
 
-        # Show the webcam feed (no drawing).
-        cv2.imshow('Hand Landmarks', frame)
-        
-        try:
-            requests.post(
-                "http://localhost:3000/landmarks",
-                json=landmark_dict,
-                timeout=0.01  # don’t block your loop
-            )
-        except requests.exceptions.RequestException:
-            pass
+        try: requests.post("http://localhost:3000/landmarks", json=landmark_dict, timeout=0.01)
+        except requests.exceptions.RequestException: pass
 
-        if cv2.waitKey(5) & 0xFF == 27:  # ESC to quit
-            break
-
+        time.sleep(1e-3)
+except KeyboardInterrupt: pass
 finally:
     cap.release()
-    cv2.destroyAllWindows()
+    hands.close()
