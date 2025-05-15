@@ -12,6 +12,10 @@
 #include "NRA_visionGL/camera.h"
 #include "NRA_visionGL/spacial.h"
 
+#include "imgui/imgui.h"
+#include "imgui/backends/imgui_impl_opengl3.h"
+#include "imgui/backends/imgui_impl_glfw.h"
+
 const int worldWidth = 10, worldHeight = 10;
 
 namespace TestControls{
@@ -56,6 +60,15 @@ int main(){
     glEnable(GL_CULL_FACE);
     glCullFace(GL_FRONT);
     glClearColor(0.0f, 0.5f, 0.8f, 1.0f);
+
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO(); (void)io;
+
+    ImGui::StyleColorsDark();  // or StyleColorsClassic(), StyleColorsLight()
+
+    ImGui_ImplGlfw_InitForOpenGL(window, true);
+    ImGui_ImplOpenGL3_Init("#version 330");
 
     std::filesystem::path shaderPath = std::filesystem::current_path().append("submodules/NRA_visionGL/res/shaders/");
     std::filesystem::path vertexPath = shaderPath;
@@ -210,6 +223,14 @@ int main(){
             }
             controls.unsetControl(TestControls::pause);
         }
+
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
+
+        ImGui::ShowDemoWindow();
+
+        
         
         NRA::VGL::Window::update();
         if(window.getAspectChanged()){
@@ -217,7 +238,7 @@ int main(){
             camera.updateProjectionMatrix(projectionParams);
         }
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
+        
         vpMat = glm::mat4(1.0f);
         camera.transformP(vpMat);
         glm::mat4 identity = glm::mat4(1.0f);
@@ -225,19 +246,22 @@ int main(){
         shader.setUniform4<float>("u_Color",meshColor);
         shader.setUniformMat<4>("U_vpMat", &vpMat[0][0]);
         shader.setUniformMat<4>("U_mMat", &identity[0][0]);
-
+        
         renderable.bindBuffers();
         renderable.render();
-
+        
         shaderN.bind();
         shaderN.setUniform4<float>("u_lightPos",lightPos);
         shaderN.setUniform3<float>("u_Color",meshColorN);
         shaderN.setUniformMat<4>("U_vpMat", &vpMat[0][0]);
         shaderN.setUniformMat<4>("U_mMat", &modelMat[0][0]);
-
+        
         renderableN.bindBuffers();
         renderableN.render();
-
+        
+        ImGui::Render();
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+        
         window.swapBuffer();
     }
 }
