@@ -4,6 +4,7 @@ BIN = ./.bin/$(PROGRAM)
 INCLUDE = -I ./include -I ./submodules -I ./submodules/NRA_visionGL/vendor/glfw/include -I ./submodules/NRA_visionGL/vendor/glad/include -I ./submodules/NRA_visionGL/build/include -I ./submodules/NRA_visionGL/include
 COMPILER = g++ -std=c++17
 ARGS = 
+SRC = src/arm_segment.cpp
 
 # ImGui parameters
 IMGUI_SRC = imgui.cpp imgui_draw.cpp imgui_widgets.cpp imgui_tables.cpp imgui_demo.cpp
@@ -34,7 +35,7 @@ build: $(BIN)
 $(BIN): ./.bin ./src/$(PROGRAM).cpp $(LIB) $(IMGUI_LIB)
 	-rm $(BIN)
 	@echo -e "${GREEN}Building '${PROGRAM}'${CYAN}"
-	$(COMPILER) $(INCLUDE) $(IMGUI_INCLUDE) -o $(BIN) ./src/$(PROGRAM).cpp $(LIB) $(IMGUI_LIB) -lglfw -lGL
+	$(COMPILER) $(INCLUDE) $(IMGUI_INCLUDE) -o $(BIN) ./src/$(PROGRAM).cpp $(SRC) $(LIB) $(IMGUI_LIB) -lglfw -lGL
 	@echo -e "${GREEN}Built '${PROGRAM}'${NOCOLOR}"
 
 # Run the executable file

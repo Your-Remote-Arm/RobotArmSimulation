@@ -16,6 +16,8 @@
 #include "imgui/backends/imgui_impl_opengl3.h"
 #include "imgui/backends/imgui_impl_glfw.h"
 
+#include "arm_segment.hpp"
+
 const int worldWidth = 10, worldHeight = 10;
 
 namespace TestControls{
@@ -49,7 +51,7 @@ int main(){
         controlsList.emplace_back(ControlsInit{ButtonType::KEY,GLFW_KEY_ESCAPE,     pause});
     }
 
-    NRA::VGL::Window window(1080,720,"NRA vision GL test",controlsList);
+    NRA::VGL::Window window(540,720,"NRA vision GL test",controlsList);
     NRA::VGL::Controls &controls = window.getControls();
     window.makeCurrent();
     window.swapInterval(1);
@@ -70,90 +72,16 @@ int main(){
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 330");
 
-    std::filesystem::path shaderPath = std::filesystem::current_path().append("submodules/NRA_visionGL/res/shaders/");
+    std::filesystem::path shaderPath = std::filesystem::current_path().append("res/shaders/");
     std::filesystem::path vertexPath = shaderPath;
     std::filesystem::path fragmentPath = shaderPath;
-    vertexPath.append("solid/solid.vertex");
-    fragmentPath.append("solid/solid.fragment");
-
-    std::filesystem::path vertexPathN = shaderPath;
-    std::filesystem::path fragmentPathN = shaderPath;
-    vertexPathN.append("point_light/point_light.vertex");
-    fragmentPathN.append("point_light/point_light.fragment");
+    vertexPath.append("point_light/point_light.vertex");
+    fragmentPath.append("point_light/point_light.fragment");
 
     NRA::VGL::Shader shader(vertexPath,fragmentPath);
-    NRA::VGL::Shader shaderN(vertexPathN,fragmentPathN);
 
-    NRA::VGL::Renderable renderable;
-    renderable.init();
-    NRA::VGL::Renderable renderableN;
-    renderableN.init();
-
-    NRA::VGL::VertexBufferLayout layout;
-    // pos
-    layout.push(GL_FLOAT,3);
-
-    NRA::VGL::VertexBufferLayout layoutN;
-    // pos
-    layoutN.push(GL_FLOAT,3);
-    // normal
-    layoutN.push(GL_FLOAT,3);
-
-    renderable.setVBOLayout(layout);
-    renderableN.setVBOLayout(layoutN);
-
-    typedef NRA::VGL::Mesh<GLuint> Mesh_t;
-    typedef NRA::VGL::MeshBuilder<GLuint> MeshBuilder_t;
-    struct vertex{
-        GLfloat pos[3];
-    };
-    struct vertexN{
-        GLfloat pos[3];
-        GLfloat n[3];
-    };
-    MeshBuilder_t::Parameters meshParams = {
-        20,
-        0,
-        0, 0, 0,
-        {0, 4, 0}
-    };
-    MeshBuilder_t::Parameters meshParamsN = {
-        20,
-        MeshBuilder_t::Parameters::NORMAL_BIT,
-        0, 0, offsetof(vertexN, n),
-        {0, 0, 0}
-    };
-
-    Mesh_t mesh = Mesh_t(sizeof(vertex)/4);
-    MeshBuilder_t::createSphere(mesh, meshParams, 1.5);
-    //meshParams.offsetX = 1;
-    //meshParams.offsetY = 1;
-    //MeshBuilder_t::createCone(mesh, meshParams, 2, 1, 2);
-    //meshParams.offsetY = 3;
-    //MeshBuilder_t::createCone(mesh, meshParams, 2, 0, 1);
-    //meshParams.offsetX = 0;
-    //meshParams.offsetY = -2;
-    //MeshBuilder_t::createPlane(mesh, meshParams, 100, 100);
-    renderable.loadVertexData(mesh.getVertices(), mesh.getVertexCount()*sizeof(vertex));
-    renderable.loadIndexData(mesh.getIndices(), mesh.getIndexCount());
-
-    Mesh_t meshN = Mesh_t(sizeof(vertexN)/4);
-    meshParamsN.offset = {0,-3,0};
-    MeshBuilder_t::createPlane(meshN, meshParamsN, 50, 50);
-    meshParamsN.offset = {-4,2,2};
-    MeshBuilder_t::createSphere(meshN, meshParamsN, 1.5);
-    meshParamsN.offset = {3,0,0};
-    MeshBuilder_t::createSphere(meshN, meshParamsN, 1.25);
-    meshParamsN.offset = {3,0,2};
-    MeshBuilder_t::createSphere(meshN, meshParamsN, 0.5);
-    meshParamsN.offset = {-3, -1, -3};
-    MeshBuilder_t::createSphere(meshN, meshParamsN, 2);
-    meshParamsN.offset = {0,0,0};
-    meshParamsN.sphere = MeshBuilder_t::Parameters::SPHERE_TYPE::ICO;
-    meshParamsN.detail = 5;
-    MeshBuilder_t::createSphere(meshN, meshParamsN, 1);
-    renderableN.loadVertexData(meshN.getVertices(), meshN.getVertexCount()*sizeof(vertexN));
-    renderableN.loadIndexData(meshN.getIndices(), meshN.getIndexCount());
+    ArmSegment::initLayout();
+    ArmSegment armBase{1, 0.1, 1, 1};
 
     NRA::VGL::SpacialBase cameraPos({0.0f,0.0f,10.0f},glm::quat(glm::vec3(0.0f,0.0f,0.0f)));
     NRA::VGL::ProjectionParams projectionParams = {window.getAspect(), NRA::VGL::ProjectionParams::horizontalFOV(90.0f,window.getAspect())};
@@ -161,7 +89,7 @@ int main(){
 
     float meshColor[4] = {0.0f,0.1f,0.1f,1.0f};
     float meshColorN[3] = {0.1f, 1.0f, 0.1f};
-    float lightPos[4] = {0.0f,2.0f,0.0f,10.0f};
+    float lightPos[4] = {0.0f,2.0f,0.0f,250.0f};
     int time = 0;
 
     glm::mat4 modelMat = glm::mat4(1.0f);
@@ -174,9 +102,9 @@ int main(){
     while(!(window.shouldClose())){
         ++time;
         meshColor[0] = 0.25f*(std::cos(time*0.01f)+1.0f)+0.25f;
-        lightPos[0] = 5*std::sin(time*0.005f);
-        lightPos[1] = 8.0f + 4.0f*std::sin(time*0.02f);
-        lightPos[2] = 5*std::cos(time*0.005f);
+        lightPos[0] = 20.0f*std::sin(time*0.005f);
+        lightPos[1] = 30.0f + 5.0f*std::sin(time*0.02f);
+        lightPos[2] = 20.0f*std::cos(time*0.005f);
 
         modelPos.rotateA(glm::vec3(0,1.0f,0),0.001f);
         modelMat = glm::mat4(1.0f);
@@ -223,14 +151,6 @@ int main(){
             }
             controls.unsetControl(TestControls::pause);
         }
-
-        ImGui_ImplOpenGL3_NewFrame();
-        ImGui_ImplGlfw_NewFrame();
-        ImGui::NewFrame();
-
-        ImGui::ShowDemoWindow();
-
-        
         
         NRA::VGL::Window::update();
         if(window.getAspectChanged()){
@@ -238,30 +158,28 @@ int main(){
             camera.updateProjectionMatrix(projectionParams);
         }
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        
+
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
+
+        ImGui::ShowDemoWindow();
+
         vpMat = glm::mat4(1.0f);
         camera.transformP(vpMat);
         glm::mat4 identity = glm::mat4(1.0f);
+
         shader.bind();
-        shader.setUniform4<float>("u_Color",meshColor);
+        shader.setUniform4<float>("u_lightPos",lightPos);
+        shader.setUniform3<float>("u_Color",meshColorN);
         shader.setUniformMat<4>("U_vpMat", &vpMat[0][0]);
-        shader.setUniformMat<4>("U_mMat", &identity[0][0]);
-        
-        renderable.bindBuffers();
-        renderable.render();
-        
-        shaderN.bind();
-        shaderN.setUniform4<float>("u_lightPos",lightPos);
-        shaderN.setUniform3<float>("u_Color",meshColorN);
-        shaderN.setUniformMat<4>("U_vpMat", &vpMat[0][0]);
-        shaderN.setUniformMat<4>("U_mMat", &modelMat[0][0]);
-        
-        renderableN.bindBuffers();
-        renderableN.render();
-        
+        shader.setUniformMat<4>("U_mMat", &modelMat[0][0]);
+
+        armBase.render();
+
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-        
+
         window.swapBuffer();
     }
 }

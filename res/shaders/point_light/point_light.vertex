@@ -1,0 +1,17 @@
+#version 330 core
+
+layout(location = 0) in vec4 v_position;
+layout(location = 1) in vec3 v_normal;
+
+out vec3 f_normal;
+out vec3 f_pos;
+
+uniform mat4 U_vpMat;
+uniform mat4 U_mMat;
+uniform vec3 U_lightPos;
+
+void main() {
+	gl_Position = U_vpMat * U_mMat * v_position;
+	f_normal = (U_mMat * vec4(v_normal,0)).xyz;
+    f_pos = v_position.xyz;
+};
