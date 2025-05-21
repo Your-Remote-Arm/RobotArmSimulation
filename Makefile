@@ -33,7 +33,7 @@ include ./colors.mak
 $(NRA_LIB):
 	cd ./submodules/NRA_visionGL && make build
 $(GLFW_LIB):
-	mkdir ./submodules/glfw-build
+	-mkdir ./submodules/glfw-build
 	cd $(GLFW) && cmake -S ./ -B ../../../glfw-build
 	cmake -DGLFW_LIBRARY_TYPE=STATIC ./submodules/glfw-build
 	cmake --build ./submodules/glfw-build
