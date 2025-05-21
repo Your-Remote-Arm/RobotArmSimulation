@@ -1,6 +1,6 @@
 [submodule "submodules/NRA_visionGL"]
 	path = submodules/NRA_visionGL
-	url = https://github.com/NathanielHawron/NRA_visionGL.git
+	url = git@github.com:NathanielHawron/NRA_visionGL.git
 [submodule "submodules/imgui"]
 	path = submodules/imgui
 	url = https://github.com/ocornut/imgui.git

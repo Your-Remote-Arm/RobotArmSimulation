@@ -51,7 +51,7 @@ int main(){
         controlsList.emplace_back(ControlsInit{ButtonType::KEY,GLFW_KEY_ESCAPE,     pause});
     }
 
-    NRA::VGL::Window window(540,720,"NRA vision GL test",controlsList);
+    NRA::VGL::Window window(1920,1080,"NRA vision GL test",controlsList);
     NRA::VGL::Controls &controls = window.getControls();
     window.makeCurrent();
     window.swapInterval(1);
@@ -81,7 +81,7 @@ int main(){
     NRA::VGL::Shader shader(vertexPath,fragmentPath);
 
     ArmSegment::initLayout();
-    ArmSegment armBase{1, 0.1, 1, 1};
+    ArmSegment armBase{1, 0.1f, 1, 1};
 
     NRA::VGL::SpacialBase cameraPos({0.0f,0.0f,10.0f},glm::quat(glm::vec3(0.0f,0.0f,0.0f)));
     NRA::VGL::ProjectionParams projectionParams = {window.getAspect(), NRA::VGL::ProjectionParams::horizontalFOV(90.0f,window.getAspect())};
@@ -92,10 +92,7 @@ int main(){
     float lightPos[4] = {0.0f,2.0f,0.0f,250.0f};
     int time = 0;
 
-    glm::mat4 modelMat = glm::mat4(1.0f);
     glm::mat4 vpMat;
-    NRA::VGL::SpacialBase modelPos;
-    modelPos.moveA({0,-1,5});
 
     controls.setSensitivity(0.01);
 
@@ -105,10 +102,6 @@ int main(){
         lightPos[0] = 20.0f*std::sin(time*0.005f);
         lightPos[1] = 30.0f + 5.0f*std::sin(time*0.02f);
         lightPos[2] = 20.0f*std::cos(time*0.005f);
-
-        modelPos.rotateA(glm::vec3(0,1.0f,0),0.001f);
-        modelMat = glm::mat4(1.0f);
-        modelPos.transform(modelMat);
 
         {
             glm::mat4 ref{1.0f};
@@ -163,7 +156,14 @@ int main(){
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
-        ImGui::ShowDemoWindow();
+        ImGui::Begin("Arm");
+        if(ImGui::Button("Add Arm Segment")){
+            armBase.addSegment(1.0f, 0.05f, 1.0f, 1.0f);
+        }
+
+        armBase.renderUIR();
+
+        ImGui::End();
 
         vpMat = glm::mat4(1.0f);
         camera.transformP(vpMat);
@@ -173,9 +173,16 @@ int main(){
         shader.setUniform4<float>("u_lightPos",lightPos);
         shader.setUniform3<float>("u_Color",meshColorN);
         shader.setUniformMat<4>("U_vpMat", &vpMat[0][0]);
-        shader.setUniformMat<4>("U_mMat", &modelMat[0][0]);
-
-        armBase.render();
+        
+        {
+            int count = 0;
+            ArmSegment *seg = &armBase;
+            while(seg != nullptr){                
+                seg->render(shader, "U_mMat");
+                seg = seg->getNext();
+                ++count;
+            }
+        }
 
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
