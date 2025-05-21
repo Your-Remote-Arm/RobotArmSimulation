@@ -1,0 +1,11 @@
+{
+	"InstallScripts" : 
+	[
+		"C:/Users/natha/github/RobotArmSimulation/submodules/glfw-build/cmake_install.cmake",
+		"C:/Users/natha/github/RobotArmSimulation/submodules/glfw-build/src/cmake_install.cmake",
+		"C:/Users/natha/github/RobotArmSimulation/submodules/glfw-build/examples/cmake_install.cmake",
+		"C:/Users/natha/github/RobotArmSimulation/submodules/glfw-build/tests/cmake_install.cmake",
+		"C:/Users/natha/github/RobotArmSimulation/submodules/glfw-build/docs/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

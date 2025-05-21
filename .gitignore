@@ -1,4 +1,4 @@
-submodules
 .bin
 .vscode
 imgui.ini
+submodules/glfw-build
