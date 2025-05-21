@@ -56,7 +56,7 @@ void ArmSegment::renderUI(std::string label){
         
         this->renderable.loadMesh(mesh);
         this->end.setZero();
-        this->end.moveA({0,this->size[0]/2,0});
+        this->end.moveA({0,this->size[0],0});
     }
 }
 void ArmSegment::renderUIR(std::size_t index){

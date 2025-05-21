@@ -30,6 +30,11 @@ endif
 
 include ./colors.mak
 
+init:
+	git submodule init
+	git submodule update
+	cd submodules/NRA_visionGL && make init && make build
+
 $(NRA_LIB):
 	cd ./submodules/NRA_visionGL && make build
 $(GLFW_LIB):
