@@ -4,20 +4,15 @@
 #include "NRA_visionGL/meshbuilder.h"
 
 #include "imgui/imgui.h"
+#include "glm/ext/matrix_transform.hpp"
 
 struct vertex{
     GLfloat pos[3];
     GLfloat norm[3];
 };
 
-ArmSegment::ArmSegment(float length, float radius, float torque, float mass, ArmSegment *previous):
-size{length,radius},torque{torque},mass{mass},previous{previous},next{nullptr},begin{},end{},renderable{}{
-    if(this->previous != nullptr){
-        this->begin.changeParent(&this->previous->end);
-    }
-    this->end.changeParent(&this->begin);
-    //this->end.moveA({0,this->size[0],0});
-    
+ArmSegment::ArmSegment(float length, float radius, float angle, float torque, float mass, glm::vec3 axis, ArmSegment *previous):
+size{length,radius},angle{angle},torque{torque},mass{mass},axis{axis},displacement{0,this->size[0],0},previous{previous},next{nullptr},renderable{}{
     this->renderable.init();
     this->renderable.setVBOLayout(ArmSegment::layout);
 
@@ -26,7 +21,7 @@ size{length,radius},torque{torque},mass{mass},previous{previous},next{nullptr},b
         20,
         NRA::VGL::MeshBuilder<GLuint>::Parameters::NORMAL_BIT,
         0, 0, offsetof(vertex, norm),
-        {0,0,0}
+        {0,this->size[0]/2,0}
     };
     NRA::VGL::Mesh<GLuint> mesh{sizeof(vertex)/4};
 
@@ -35,29 +30,45 @@ size{length,radius},torque{torque},mass{mass},previous{previous},next{nullptr},b
     this->renderable.loadMesh(mesh);
 }
 
-void ArmSegment::render(NRA::VGL::Shader &shader, std::string modelMatName){
-    glm::mat4 modelMat = glm::mat4(1.0f);
-    this->begin.transformR(modelMat);
-    shader.setUniformMat<4>(modelMatName, &modelMat[0][0]);
+glm::mat4 ArmSegment::render(NRA::VGL::Shader &shader, std::string modelMatName, glm::mat4 mat){
+    shader.setUniformMat<4>(modelMatName, &mat[0][0]);
     this->renderable.render();
+    mat = mat * glm::translate(glm::mat4(1.0f), this->displacement);
+    mat = mat * glm::rotate(glm::mat4(1.0f), this->angle, this->axis);
+    return mat;
+}
+glm::mat4 ArmSegment::renderR(NRA::VGL::Shader &shader, std::string modelMatName, glm::mat4 mat){
+    mat = this->render(shader, modelMatName, mat);
+    if(this->next != nullptr){
+        mat = this->next->renderR(shader, modelMatName, mat);
+    }
+    return mat;
 }
 void ArmSegment::renderUI(std::string label){
+    ImGui::BeginChild(label.c_str(), {500,100});
     std::string l = "Length / Radius " + label;
     if(ImGui::SliderFloat2(l.c_str(),this->size,0.01f,10.0f,"%.2f")){
         NRA::VGL::MeshBuilder<GLuint>::Parameters p = {
             20,
             NRA::VGL::MeshBuilder<GLuint>::Parameters::NORMAL_BIT,
             0, 0, offsetof(vertex, norm),
-            {0,0,0}
+            {0,this->size[0]/2,0}
         };
         NRA::VGL::Mesh<GLuint> mesh{sizeof(vertex)/4};
         
         NRA::VGL::MeshBuilder<GLuint>::createCylinder(mesh, p, this->size[1], this->size[0]);
         
         this->renderable.loadMesh(mesh);
-        //this->end.setZero();
-        //this->end.moveA({0,this->size[0],0});
+
+        this->displacement.y = this->size[0];
     }
+    l = "Axis " + label;
+    if(ImGui::SliderFloat3(l.c_str(), &this->axis[0],-1.0f,1.0f,"%.4f")){
+    }
+    l = "Angle " + label;
+    if(ImGui::SliderAngle(l.c_str(), &this->angle)){
+    }
+    ImGui::EndChild();
 }
 void ArmSegment::renderUIR(std::size_t index){
     this->renderUI(std::to_string(index));
@@ -65,11 +76,11 @@ void ArmSegment::renderUIR(std::size_t index){
         this->next->renderUIR(index+1);
     }
 }
-void ArmSegment::addSegment(float length, float radius, float torque, float mass){
+void ArmSegment::addSegment(float length, float radius, float angle, float torque, float mass, glm::vec3 axis){
     if(this->next == nullptr){
-        this->next = new ArmSegment(length, radius, torque, mass, this);
+        this->next = new ArmSegment(length, radius, angle, torque, mass, axis, this);
     }else{
-        this->next->addSegment(length, radius, torque, mass);
+        this->next->addSegment(length, radius, angle, torque, mass, axis);
     }
 }
 

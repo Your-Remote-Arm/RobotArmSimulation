@@ -81,7 +81,7 @@ int main(){
     NRA::VGL::Shader shader(vertexPath,fragmentPath);
 
     ArmSegment::initLayout();
-    ArmSegment armBase{1, 0.1f, 1, 1};
+    ArmSegment armBase{1, 0.1f, 0.01f, 1, 1, {0.0f,1.0f,0.0f}};
 
     NRA::VGL::SpacialBase cameraPos({0.0f,0.0f,10.0f},glm::quat(glm::vec3(0.0f,0.0f,0.0f)));
     NRA::VGL::ProjectionParams projectionParams = {window.getAspect(), NRA::VGL::ProjectionParams::horizontalFOV(90.0f,window.getAspect())};
@@ -158,7 +158,7 @@ int main(){
 
         ImGui::Begin("Arm");
         if(ImGui::Button("Add Arm Segment")){
-            armBase.addSegment(1.0f, 0.05f, 1.0f, 1.0f);
+            armBase.addSegment(1.0f, 0.05f, 0.0f, 1.0f, 1.0f);
         }
 
         armBase.renderUIR();
@@ -174,15 +174,7 @@ int main(){
         shader.setUniform3<float>("u_Color",meshColorN);
         shader.setUniformMat<4>("U_vpMat", &vpMat[0][0]);
         
-        {
-            int count = 0;
-            ArmSegment *seg = &armBase;
-            while(seg != nullptr){                
-                seg->render(shader, "U_mMat");
-                seg = seg->getNext();
-                ++count;
-            }
-        }
+        armBase.renderR(shader, "U_mMat");
 
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
