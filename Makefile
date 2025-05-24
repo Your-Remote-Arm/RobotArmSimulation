@@ -1,11 +1,11 @@
 PROGRAM = main
-PLATFORM = win
+PLATFORM = arch
 
 # ImGui parameters
 IMGUI_SRC = imgui.cpp imgui_draw.cpp imgui_widgets.cpp imgui_tables.cpp imgui_demo.cpp
 IMGUI_BACKENDS = backends/imgui_impl_glfw.cpp backends/imgui_impl_opengl3.cpp
 IMGUI_OBJS = $(addprefix ./lib/.o/, $(IMGUI_SRC:.cpp=.o) $(IMGUI_BACKENDS:.cpp=.o) )
-IMGUI_LIB = ./lib/libimgui.a
+IMGUI_LIB = ./lib/libimgui_$(PLATFORM).a
 IMGUI_INCLUDE = -I ./submodules/imgui
 
 # Other submodule parameters
@@ -31,9 +31,12 @@ endif
 include ./colors.mak
 
 init:
-	git submodule init
-	git submodule update
-	cd submodules/NRA_visionGL && make init && make build
+	-mkdir lib
+	-mkdir lib/.o
+	-mkdir lib/.o/backends
+	-git submodule init
+	-git submodule update
+	-cd submodules/NRA_visionGL && make init && make build
 
 $(NRA_LIB):
 	cd ./submodules/NRA_visionGL && make build
