@@ -19,7 +19,7 @@ BIN = ./.bin/$(PROGRAM)
 INCLUDE = -I ./include -I ./submodules -I ./submodules/NRA_visionGL/vendor/glfw/include -I ./submodules/NRA_visionGL/vendor/glad/include -I ./submodules/NRA_visionGL/build/include -I ./submodules/NRA_visionGL/include -I ./submodules/NRA_visionGL/vendor/glm
 COMPILER = g++ -std=c++17
 ARGS = 
-SRC = src/arm_segment.cpp
+SRC = src/arm_segment.cpp src/arm_segment_manager.cpp
 
 ifneq ($(PLATFORM), win)
 	LIB += -lglfw -lGL
@@ -57,7 +57,7 @@ $(IMGUI_LIB): $(IMGUI_OBJS)
 	mkdir ./.bin
 
 build: $(BIN)
-$(BIN): ./.bin ./src/$(PROGRAM).cpp ./src/*.cpp $(NRA_LIB) $(IMGUI_LIB) $(GLFW_BUILD)
+$(BIN): ./.bin ./src/$(PROGRAM).cpp $(SRC) $(NRA_LIB) $(IMGUI_LIB) $(GLFW_BUILD)
 	-rm $(BIN)
 	@echo -e "${GREEN}Building '${PROGRAM}'${CYAN}"
 	$(COMPILER) $(INCLUDE) $(IMGUI_INCLUDE) -o $(BIN) ./src/$(PROGRAM).cpp $(SRC) $(LIB)

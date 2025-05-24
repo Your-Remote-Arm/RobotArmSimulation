@@ -10,24 +10,34 @@ struct vertex{
     GLfloat pos[3];
     GLfloat norm[3];
 };
+typedef NRA::VGL::MeshBuilder<GLuint> MeshBuilder_t;
 
 ArmSegment::ArmSegment(float length, float radius, float angle, float torque, float mass, glm::vec3 axis, ArmSegment *previous):
-size{length,radius},angle{angle},torque{torque},mass{mass},axis{axis},displacement{0,this->size[0],0},previous{previous},next{nullptr},renderable{}{
+size{length,radius},angle{angle},torque{torque},mass{mass},axis{axis},displacement{0,this->size[0],0},previous{previous},next{nullptr},renderable{},detail{5}{
     this->renderable.init();
     this->renderable.setVBOLayout(ArmSegment::layout);
 
-
-    NRA::VGL::MeshBuilder<GLuint>::Parameters p = {
-        20,
-        NRA::VGL::MeshBuilder<GLuint>::Parameters::NORMAL_BIT,
+    MeshBuilder_t::Parameters p = {
+        this->detail,
+        MeshBuilder_t::Parameters::NORMAL_BIT,
         0, 0, offsetof(vertex, norm),
-        {0,this->size[0]/2,0}
+        {0,this->size[0]/2,0},
+        MeshBuilder_t::Parameters::SPHERE_TYPE::UV,
+        MeshBuilder_t::Parameters::CAP_TYPE::SPHERE,
+        MeshBuilder_t::Parameters::CAP_TYPE::SPHERE
     };
     NRA::VGL::Mesh<GLuint> mesh{sizeof(vertex)/4};
 
-    NRA::VGL::MeshBuilder<GLuint>::createCylinder(mesh, p, this->size[1], this->size[0]);
+    MeshBuilder_t::createCylinder(mesh, p, this->size[1], this->size[0]);
 
     this->renderable.loadMesh(mesh);
+}
+void ArmSegment::addSegment(float length, float radius, float angle, float torque, float mass, glm::vec3 axis){
+    if(this->next == nullptr){
+        this->next = new ArmSegment(length, radius, angle, torque, mass, axis, this);
+    }else{
+        this->next->addSegment(length, radius, angle, torque, mass, axis);
+    }
 }
 
 glm::mat4 ArmSegment::render(NRA::VGL::Shader &shader, std::string modelMatName, glm::mat4 mat){
@@ -48,15 +58,18 @@ void ArmSegment::renderUI(std::string label){
     ImGui::BeginChild(label.c_str(), {500,100});
     std::string l = "Length / Radius " + label;
     if(ImGui::SliderFloat2(l.c_str(),this->size,0.01f,10.0f,"%.2f")){
-        NRA::VGL::MeshBuilder<GLuint>::Parameters p = {
-            20,
-            NRA::VGL::MeshBuilder<GLuint>::Parameters::NORMAL_BIT,
+        MeshBuilder_t::Parameters p = {
+            this->detail,
+            MeshBuilder_t::Parameters::NORMAL_BIT,
             0, 0, offsetof(vertex, norm),
-            {0,this->size[0]/2,0}
+            {0,this->size[0]/2,0},
+            MeshBuilder_t::Parameters::SPHERE_TYPE::UV,
+            MeshBuilder_t::Parameters::CAP_TYPE::SPHERE,
+            MeshBuilder_t::Parameters::CAP_TYPE::SPHERE
         };
         NRA::VGL::Mesh<GLuint> mesh{sizeof(vertex)/4};
         
-        NRA::VGL::MeshBuilder<GLuint>::createCylinder(mesh, p, this->size[1], this->size[0]);
+        MeshBuilder_t::createCylinder(mesh, p, this->size[1], this->size[0]);
         
         this->renderable.loadMesh(mesh);
 
@@ -76,12 +89,12 @@ void ArmSegment::renderUIR(std::size_t index){
         this->next->renderUIR(index+1);
     }
 }
-void ArmSegment::addSegment(float length, float radius, float angle, float torque, float mass, glm::vec3 axis){
-    if(this->next == nullptr){
-        this->next = new ArmSegment(length, radius, angle, torque, mass, axis, this);
-    }else{
-        this->next->addSegment(length, radius, angle, torque, mass, axis);
-    }
+
+void ArmSegment::save(std::ofstream fileStream){
+
+}
+void ArmSegment::load(std::ifstream fileStream){
+
 }
 
 void ArmSegment::initLayout(){

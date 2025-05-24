@@ -16,7 +16,7 @@
 #include "imgui/backends/imgui_impl_opengl3.h"
 #include "imgui/backends/imgui_impl_glfw.h"
 
-#include "arm_segment.hpp"
+#include "arm_segment_manager.hpp"
 
 const int worldWidth = 10, worldHeight = 10;
 
@@ -81,7 +81,7 @@ int main(){
     NRA::VGL::Shader shader(vertexPath,fragmentPath);
 
     ArmSegment::initLayout();
-    ArmSegment armBase{1, 0.1f, 0.01f, 1, 1, {0.0f,1.0f,0.0f}};
+    ArmSegmentManager arm;
 
     NRA::VGL::SpacialBase cameraPos({0.0f,0.0f,10.0f},glm::quat(glm::vec3(0.0f,0.0f,0.0f)));
     NRA::VGL::ProjectionParams projectionParams = {window.getAspect(), NRA::VGL::ProjectionParams::horizontalFOV(90.0f,window.getAspect())};
@@ -89,19 +89,12 @@ int main(){
 
     float meshColor[4] = {0.0f,0.1f,0.1f,1.0f};
     float meshColorN[3] = {0.1f, 1.0f, 0.1f};
-    float lightPos[4] = {0.0f,2.0f,0.0f,250.0f};
+    float lightPos[4] = {0.0f,2.0f,0.0f,10.0f};
     int time = 0;
-
-    glm::mat4 vpMat;
 
     controls.setSensitivity(0.01);
 
     while(!(window.shouldClose())){
-        ++time;
-        meshColor[0] = 0.25f*(std::cos(time*0.01f)+1.0f)+0.25f;
-        lightPos[0] = 20.0f*std::sin(time*0.005f);
-        lightPos[1] = 30.0f + 5.0f*std::sin(time*0.02f);
-        lightPos[2] = 20.0f*std::cos(time*0.005f);
 
         {
             glm::mat4 ref{1.0f};
@@ -156,16 +149,9 @@ int main(){
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
-        ImGui::Begin("Arm");
-        if(ImGui::Button("Add Arm Segment")){
-            armBase.addSegment(1.0f, 0.05f, 0.0f, 1.0f, 1.0f);
-        }
+        //ImGui::ShowDemoWindow();
 
-        armBase.renderUIR();
-
-        ImGui::End();
-
-        vpMat = glm::mat4(1.0f);
+        glm::mat4 vpMat = glm::mat4(1.0f);
         camera.transformP(vpMat);
         glm::mat4 identity = glm::mat4(1.0f);
 
@@ -173,8 +159,9 @@ int main(){
         shader.setUniform4<float>("u_lightPos",lightPos);
         shader.setUniform3<float>("u_Color",meshColorN);
         shader.setUniformMat<4>("U_vpMat", &vpMat[0][0]);
-        
-        armBase.renderR(shader, "U_mMat");
+
+        arm.renderUI();
+        arm.render(shader);
 
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());

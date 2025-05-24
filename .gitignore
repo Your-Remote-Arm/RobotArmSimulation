@@ -2,3 +2,4 @@
 .vscode
 imgui.ini
 submodules/glfw-build
+./*.dat
