@@ -3,9 +3,6 @@
 #include <iostream>
 #include <filesystem>
 
-#include "imgui/imgui.h"
-
-
 bool ArmSegmentManager::FileProperties::operator==(const FileProperties &other) const{
     return this->name == other.name && this->extension == other.extension && this->type == other.type;
 }
@@ -27,6 +24,12 @@ base{1, 0.1f, 0.0f, 1, 1, {0.0f,1.0f,0.0f}},fileUI{FILE_UI::LOAD},folderPathBuff
         this->folderPathBuffSize = 1023;
         this->folderPathBuff = new char[this->folderPathBuffSize+1];
         memset(this->folderPathBuff,0,this->folderPathBuffSize+1);
+        this->folderPathBuff[0] = '.';
+        this->folderPathBuff[1] = '.';
+        this->folderPathBuff[2] = '/';
+        this->folderPathBuff[3] = '.';
+        this->folderPathBuff[4] = '.';
+        this->folderPathBuff[5] = '/';
     }
 }
 ArmSegmentManager::~ArmSegmentManager(){
@@ -220,9 +223,11 @@ std::array<bool,2> ArmSegmentManager::showFiles(){
     for(const auto & f : this->files){
         if((this->showHidden || f.name.at(0) != '.') && (this->showAllFiles || f.type == FILE_TYPE::ARM_FILE || f.type == FILE_TYPE::FOLDER)){
             std::string fname = this->showExtensions ? f.fullName() : f.name;
-            if(ImGui::Selectable(fname.c_str(),f == this->selectedFile)){
+            ImGui::PushStyleColor(ImGuiCol_Text, ArmSegmentManager::fileTypeColors[(uint_fast8_t)f.type][0]);
+            if(ImGui::Selectable(fname.c_str(),(f == this->selectedFile))){
                 this->selectedFile = f;
             }
+            ImGui::PopStyleColor(1);
         }
     }
     ImGui::EndChild();

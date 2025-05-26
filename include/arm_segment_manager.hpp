@@ -1,5 +1,7 @@
 #pragma once
 
+#include "imgui/imgui.h"
+
 #include "NRA_visionGL/shader.h"
 
 #include "arm_segment.hpp"
@@ -15,6 +17,11 @@ private:
         FOLDER = 0,
         ARM_FILE,
         OTHER_FILE
+    };
+    static constexpr ImVec4 fileTypeColors[3][1] = {
+        {{0.85f, 0.85f, 0.95f, 1.00f}},
+        {{0.80f, 1.00f, 0.85f, 1.00f}},
+        {{1.00f, 0.80f, 0.85f, 1.00f}}
     };
     struct FileProperties{
         std::string name;

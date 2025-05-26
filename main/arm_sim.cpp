@@ -18,8 +18,6 @@
 
 #include "arm_segment_manager.hpp"
 
-const int worldWidth = 10, worldHeight = 10;
-
 namespace TestControls{
     // First block (0 - 31):    Movement
     const NRA::VGL::ControlBind forwards =      {false, 0};
@@ -73,7 +71,7 @@ int main(){
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 330");
 
-    std::filesystem::path shaderPath = std::filesystem::current_path().append("../res/shaders/");
+    std::filesystem::path shaderPath = std::filesystem::current_path().append("../../res/shaders/");
     std::filesystem::path vertexPath = shaderPath;
     std::filesystem::path fragmentPath = shaderPath;
     vertexPath.append("point_light/point_light.vertex");

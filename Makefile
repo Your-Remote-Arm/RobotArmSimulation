@@ -1,4 +1,4 @@
-PROGRAM = main
+PROGRAM = arm_sim
 PLATFORM = arch
 
 # ImGui parameters
@@ -15,14 +15,15 @@ GLFW_BUILD =
 NRA_LIB = ./submodules/NRA_visionGL/lib/libvision_lib_$(PLATFORM).a
 
 LIB = $(NRA_LIB) $(IMGUI_LIB)
-BIN = ./.bin/$(PROGRAM)
+BIN_LOCATION = ./.bin/$(PROGRAM)_bin
+BIN = $(BIN_LOCATION)/$(PROGRAM)
 INCLUDE = -I ./include -I ./submodules -I ./submodules/NRA_visionGL/vendor/glfw/include -I ./submodules/NRA_visionGL/vendor/glad/include -I ./submodules/NRA_visionGL/build/include -I ./submodules/NRA_visionGL/include -I ./submodules/NRA_visionGL/vendor/glm
 COMPILER = g++ -std=c++17
 ARGS = 
 SRC = src/arm_segment.cpp src/arm_segment_manager.cpp
 
 ifneq ($(PLATFORM), win)
-	LIB += -lglfw -lGL
+	LIB += -lglfw -lGL -lzmq
 else
 	LIB += ./submodules/glfw-build/src/libglfw3.a -lgdi32
 	GLFW_BUILD = $(GLFW_LIB)
@@ -57,17 +58,19 @@ $(IMGUI_LIB): $(IMGUI_OBJS)
 	ar rcs $(IMGUI_LIB) $^
 
 ./.bin:
-	mkdir ./.bin
+	-@mkdir ./.bin
+$(BIN_LOCATION): ./.bin
+	-@mkdir $(BIN_LOCATION)
 
 build: $(BIN)
-$(BIN): ./.bin ./src/$(PROGRAM).cpp $(SRC) $(NRA_LIB) $(IMGUI_LIB) $(GLFW_BUILD)
+$(BIN): $(BIN_LOCATION) ./main/$(PROGRAM).cpp $(SRC) $(NRA_LIB) $(IMGUI_LIB) $(GLFW_BUILD)
 	-rm $(BIN)
 	@echo -e "${GREEN}Building '${PROGRAM}'${CYAN}"
-	$(COMPILER) $(INCLUDE) $(IMGUI_INCLUDE) -o $(BIN) ./src/$(PROGRAM).cpp $(SRC) $(LIB)
+	$(COMPILER) $(INCLUDE) $(IMGUI_INCLUDE) -o $(BIN) ./main/$(PROGRAM).cpp $(SRC) $(LIB)
 	@echo -e "${GREEN}Built '${PROGRAM}'${NOCOLOR}"
 
 # Run the executable file
 run: $(BIN)
 	@echo -e "${GREEN}Running '${PROGRAM}'${NOCOLOR}"
-	cd ./.bin/ && ./$(PROGRAM) $(ARGS)
+	cd $(BIN_LOCATION) && ./$(PROGRAM) $(ARGS)
 	@echo -e "${GREEN}Finished Running '${PROGRAM}'${NOCOLOR}"
