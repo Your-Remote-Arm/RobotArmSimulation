@@ -31,6 +31,7 @@ namespace TestControls{
 };
 
 int main(){
+    std::filesystem::current_path("../../");
     std::cout << "NRA_visionGL test v" << (std::string)NRA_visionGL_VERSION << std::endl;
 
     NRA::VGL::Window::init();
@@ -71,7 +72,7 @@ int main(){
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 330");
 
-    std::filesystem::path shaderPath = std::filesystem::current_path().append("../../res/shaders/");
+    std::filesystem::path shaderPath = std::filesystem::current_path().append("./res/shaders/");
     std::filesystem::path vertexPath = shaderPath;
     std::filesystem::path fragmentPath = shaderPath;
     vertexPath.append("point_light/point_light.vertex");

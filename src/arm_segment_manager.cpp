@@ -3,14 +3,15 @@
 #include <iostream>
 #include <filesystem>
 
+std::filesystem::path ArmSegmentManager::persistentPath = std::filesystem::current_path().append("persistent.dat");
+
 bool ArmSegmentManager::FileProperties::operator==(const FileProperties &other) const{
     return this->name == other.name && this->extension == other.extension && this->type == other.type;
 }
 
 ArmSegmentManager::ArmSegmentManager():
 base{1, 0.1f, 0.0f, 1, 1, {0.0f,1.0f,0.0f}},fileUI{FILE_UI::LOAD},folderPathBuff{nullptr},folderPathBuffSize{0},selectedFile{"","",FILE_TYPE::FOLDER},showAllFiles{false},showExtensions{false},showHidden{false},forceRefresh{true}{
-    std::filesystem::path persistent = std::filesystem::current_path().append("persistent.dat");
-    std::ifstream persistentFile{persistent};
+    std::ifstream persistentFile{ArmSegmentManager::persistentPath};
 
     if(persistentFile.is_open()){
         std::string filePath;
@@ -25,16 +26,11 @@ base{1, 0.1f, 0.0f, 1, 1, {0.0f,1.0f,0.0f}},fileUI{FILE_UI::LOAD},folderPathBuff
         this->folderPathBuff = new char[this->folderPathBuffSize+1];
         memset(this->folderPathBuff,0,this->folderPathBuffSize+1);
         this->folderPathBuff[0] = '.';
-        this->folderPathBuff[1] = '.';
-        this->folderPathBuff[2] = '/';
-        this->folderPathBuff[3] = '.';
-        this->folderPathBuff[4] = '.';
-        this->folderPathBuff[5] = '/';
+        this->folderPathBuff[1] = '/';
     }
 }
 ArmSegmentManager::~ArmSegmentManager(){
-    std::filesystem::path persistent = std::filesystem::current_path().append("persistent.dat");
-    std::ofstream persistentFile{persistent};
+    std::ofstream persistentFile{ArmSegmentManager::persistentPath};
     persistentFile << std::string(this->folderPath.string()) << '\n';
 
     delete[] this->folderPathBuff;

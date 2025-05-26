@@ -23,6 +23,7 @@ private:
         {{0.80f, 1.00f, 0.85f, 1.00f}},
         {{1.00f, 0.80f, 0.85f, 1.00f}}
     };
+    static std::filesystem::path persistentPath;
     struct FileProperties{
         std::string name;
         std::string extension;
