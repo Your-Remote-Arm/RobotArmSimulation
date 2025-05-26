@@ -6,24 +6,35 @@
 #include "imgui/imgui.h"
 
 
+bool ArmSegmentManager::FileProperties::operator==(const FileProperties &other) const{
+    return this->name == other.name && this->extension == other.extension && this->type == other.type;
+}
+
 ArmSegmentManager::ArmSegmentManager():
-base{1, 0.1f, 0.0f, 1, 1, {0.0f,1.0f,0.0f}},fileUI{FILE_UI::LOAD}{
+base{1, 0.1f, 0.0f, 1, 1, {0.0f,1.0f,0.0f}},fileUI{FILE_UI::LOAD},folderPathBuff{nullptr},folderPathBuffSize{0},selectedFile{"","",FILE_TYPE::FOLDER},showAllFiles{false},showExtensions{false},showHidden{false},forceRefresh{true}{
     std::filesystem::path persistent = std::filesystem::current_path().append("persistent.dat");
     std::ifstream persistentFile{persistent};
-
-    memset(this->folderpath, 0, 1024);
-    this->folderpath[0] = '/';
 
     if(persistentFile.is_open()){
         std::string filePath;
         persistentFile >> filePath;
-        memcpy(this->folderpath, filePath.c_str(), std::min(filePath.length(),ArmSegmentManager::FOLDER_PATH_SIZE));
+        this->folderPath = std::filesystem::path(filePath);
+        this->folderPathBuffSize = std::max(this->folderPath.string().length()+64,(std::size_t)1023);
+        this->folderPathBuff = new char[this->folderPathBuffSize+1];
+        memset(this->folderPathBuff,0,this->folderPathBuffSize+1);
+        memcpy(this->folderPathBuff,filePath.c_str(),filePath.length());
+    }else{
+        this->folderPathBuffSize = 1023;
+        this->folderPathBuff = new char[this->folderPathBuffSize+1];
+        memset(this->folderPathBuff,0,this->folderPathBuffSize+1);
     }
 }
 ArmSegmentManager::~ArmSegmentManager(){
     std::filesystem::path persistent = std::filesystem::current_path().append("persistent.dat");
     std::ofstream persistentFile{persistent};
-    persistentFile << std::string(this->folderpath);
+    persistentFile << std::string(this->folderPath.string()) << '\n';
+
+    delete[] this->folderPathBuff;
 }
 void ArmSegmentManager::renderUI(){
     ImGui::Begin("Arm", nullptr, ImGuiWindowFlags_MenuBar);
@@ -45,35 +56,74 @@ void ArmSegmentManager::renderUI(){
         case FILE_UI::NONE:{}break;
         case FILE_UI::SAVE:{
             ImGui::Begin("Save");
-            ImGui::InputText("File path", this->folderpath, ArmSegmentManager::FOLDER_PATH_SIZE);
-            if(ImGui::Button("Refresh")){
-                this->fileNames.empty();
+            this->forceRefresh |= this->filePathEditor();
+            if(ImGui::Button("Create Folder")){
+                std::filesystem::create_directory(this->folderPath);
+            }
+            if(ImGui::Button("Cancel")){
+                this->fileUI = FILE_UI::NONE;
+            }
+            ImGui::SameLine();
+            this->fileRefreshButton(this->forceRefresh);
+            ImGui::SameLine();
+            auto res = this->showFiles();
+            this->forceRefresh = res[1];
+            if(res[0]){
                 try{
-                    for(const auto &entry : std::filesystem::directory_iterator(this->folderpath)){
-                        if(entry.is_regular_file() && entry.path().filename().extension() == ".arm"){
-                            this->fileNames.push_back(entry.path().filename().string());
-                        }
+                    std::ofstream fout{this->folderPath, std::ios::binary};
+                    std::size_t segCount = 0;
+                    ArmSegment *seg = &this->base;
+                    while(seg != nullptr){
+                        ++segCount;
+                        seg = seg->getNext();
                     }
-                }catch(const std::filesystem::filesystem_error &e){
-                    std::cerr << e.what() << std::endl;
-                }catch(const std::exception &e){
+                    fout.write((char*)&segCount,sizeof(std::size_t));
+                    seg = &this->base;
+                    while(seg != nullptr){
+                        seg->save(fout);
+                        seg = seg->getNext();
+                    }
+                    fout.close();
+                }catch(std::filesystem::filesystem_error &e){
                     std::cerr << e.what() << std::endl;
                 }
+                this->fileUI = FILE_UI::NONE;
+                this->forceRefresh = true;
             }
-            ImGui::BeginChild("Files");
-            for(const auto & fname : this->fileNames){
-                if(ImGui::Selectable(fname.c_str(),fname == this->selectedFileName)){
-                    this->selectedFileName = fname;
-                }
-            }
-            ImGui::EndChild();
             ImGui::End();
         }break;
         case FILE_UI::LOAD:{
             ImGui::Begin("Load");
-            ImGui::InputText("File path", this->folderpath, ArmSegmentManager::FOLDER_PATH_SIZE);
-            ImGui::BeginChild("Files");
-            ImGui::EndChild();
+            this->forceRefresh |= this->filePathEditor();
+            if(ImGui::Button("Cancel")){
+                this->fileUI = FILE_UI::NONE;
+            }
+            ImGui::SameLine();
+            this->fileRefreshButton(this->forceRefresh);
+            ImGui::SameLine();
+            auto res = this->showFiles();
+            this->forceRefresh = res[1];
+            if(res[0]){
+                try{
+                    std::ifstream fin{this->folderPath, std::ios::binary};
+                    std::size_t segCount;
+                    fin.read((char*)&segCount,sizeof(std::size_t));
+
+                    ArmSegment::Serialized data;
+                    this->base.load(fin);
+                    for(std::size_t i=1;i<segCount;++i){
+                        fin.read(data,sizeof(ArmSegment::Serialized));
+                        this->base.addSegment(data.size[0],data.size[1],data.angle,data.torque,data.mass,data.axis);
+                    }
+                    
+                    fin.close();
+                }catch(std::filesystem::filesystem_error &e){
+                    std::cerr << e.what() << std::endl;
+                }
+
+                this->fileUI = FILE_UI::NONE;
+                this->forceRefresh = true;
+            }
             ImGui::End();
         }break;
     }
@@ -100,4 +150,97 @@ glm::mat4 ArmSegmentManager::render(NRA::VGL::Shader &shader, glm::mat4 mat){
         seg = seg->getNext();
     }
     return mat;
+}
+
+void ArmSegmentManager::updateFolderPathBuff(){
+    if(this->folderPath.string().length() > this->folderPathBuffSize){
+        this->folderPathBuffSize = this->folderPath.string().length() + 64;
+        delete[] this->folderPathBuff;
+        this->folderPathBuff = new char[this->folderPathBuffSize+1];
+    }
+    memset(this->folderPathBuff,0,this->folderPathBuffSize+1);
+    memcpy(this->folderPathBuff,this->folderPath.c_str(),std::max(this->folderPath.string().length(),this->folderPathBuffSize));
+}
+bool ArmSegmentManager::filePathEditor(){
+    bool res = false;
+    if(ImGui::Button("<")){
+        res = true;
+        if(this->folderPath.string()==".." || this->folderPath.string()=="../"){
+            this->folderPath = std::filesystem::current_path();
+        }
+        this->folderPath = this->folderPath.parent_path();
+        this->updateFolderPathBuff();
+    }
+    ImGui::SameLine();
+    res |= ImGui::InputText("File path", this->folderPathBuff, this->folderPathBuffSize);
+    if(this->folderPathBuff[this->folderPathBuffSize-1] != '\0'){
+        this->folderPathBuffSize += 64;
+        char *newBuff = new char[this->folderPathBuffSize+1];
+        memcpy(newBuff,this->folderPathBuff,this->folderPathBuffSize+1);
+        delete[] this->folderPathBuff;
+        this->folderPathBuff = newBuff;
+    }
+
+    return res;
+}
+void ArmSegmentManager::fileRefreshButton(bool force){
+    if(ImGui::Button("Refresh") || force){
+        this->folderPath = std::filesystem::path(this->folderPathBuff);
+        this->files.clear();
+        try{
+            for(const auto &entry : std::filesystem::directory_iterator(this->folderPath)){
+                std::string filename = entry.path().filename().stem().string();
+                std::string fileextension = "";
+                FILE_TYPE fType = FILE_TYPE::FOLDER;
+                if(entry.is_regular_file()){
+                    fileextension = entry.path().filename().extension().string();
+                    if(fileextension == ".arm"){
+                        fType = FILE_TYPE::ARM_FILE;
+                    }else{
+                        fType = FILE_TYPE::OTHER_FILE;
+                    }
+                }
+
+                this->files.push_back({filename, fileextension, fType});
+            }
+        }catch(const std::filesystem::filesystem_error &e){
+            //std::cerr << e.what() << std::endl;
+        }catch(const std::exception &e){
+            //std::cerr << e.what() << std::endl;
+        }
+    }
+}
+std::array<bool,2> ArmSegmentManager::showFiles(){
+    bool confirmed = ImGui::Button("Confirm");
+    ImGui::BeginChild("Files");
+    ImGui::Checkbox("Show All Files",&this->showAllFiles);      ImGui::SameLine();
+    ImGui::Checkbox("Show Extensions",&this->showExtensions);   ImGui::SameLine();
+    ImGui::Checkbox("Show Hidden",&this->showHidden);
+    ImGui::BeginChild("FileList");
+    for(const auto & f : this->files){
+        if((this->showHidden || f.name.at(0) != '.') && (this->showAllFiles || f.type == FILE_TYPE::ARM_FILE || f.type == FILE_TYPE::FOLDER)){
+            std::string fname = this->showExtensions ? f.fullName() : f.name;
+            if(ImGui::Selectable(fname.c_str(),f == this->selectedFile)){
+                this->selectedFile = f;
+            }
+        }
+    }
+    ImGui::EndChild();
+    ImGui::EndChild();
+    if(confirmed){
+        if(this->selectedFile.name != "" && this->selectedFile.type == FILE_TYPE::FOLDER){
+            this->folderPath.append(this->selectedFile.name);
+            this->updateFolderPathBuff();
+            this->selectedFile = {"","",FILE_TYPE::FOLDER};
+            return {false,true};
+        }else if(this->selectedFile.name.length() > 0 && this->selectedFile.type != FILE_TYPE::FOLDER){
+            this->folderPath.append(this->selectedFile.fullName());
+            this->updateFolderPathBuff();
+            return {true,false};
+        }else{
+            return {true,false};
+        }
+    }else{
+        return {false,false};
+    }
 }

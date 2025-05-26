@@ -69,5 +69,5 @@ $(BIN): ./.bin ./src/$(PROGRAM).cpp $(SRC) $(NRA_LIB) $(IMGUI_LIB) $(GLFW_BUILD)
 # Run the executable file
 run: $(BIN)
 	@echo -e "${GREEN}Running '${PROGRAM}'${NOCOLOR}"
-	$(BIN) $(ARGS)
+	cd ./.bin/ && ./$(PROGRAM) $(ARGS)
 	@echo -e "${GREEN}Finished Running '${PROGRAM}'${NOCOLOR}"

@@ -66,13 +66,14 @@ int main(){
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO(); (void)io;
+    io.IniFilename = nullptr;
 
     ImGui::StyleColorsDark();  // or StyleColorsClassic(), StyleColorsLight()
 
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 330");
 
-    std::filesystem::path shaderPath = std::filesystem::current_path().append("res/shaders/");
+    std::filesystem::path shaderPath = std::filesystem::current_path().append("../res/shaders/");
     std::filesystem::path vertexPath = shaderPath;
     std::filesystem::path fragmentPath = shaderPath;
     vertexPath.append("point_light/point_light.vertex");
