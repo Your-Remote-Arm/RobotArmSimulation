@@ -5,11 +5,21 @@ import numpy as np
 import pybullet as p
 import pybullet_data
 
+from packages.load_gripper import Gripper, Generic
+from packages import camera
+
 class Environment():
     def __init__(self, gui):
+        self.camera = None
         self.pix_size = 0.003125
         self.obj_ids = {'fixed': [], 'rigid': [], 'deformable': []}
-        self.homej = np.array([-1, -0.5, 0.5, -0.5, -0.5, 0]) * np.pi
+        self.homej = np.array([
+            -1, 
+            -0.5, 
+            0.5, 
+            -0.5, 
+            -0.5, 
+            0]) * np.pi
 
         p.connect(p.GUI if gui else p.DIRECT)
         p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
@@ -33,14 +43,13 @@ class Environment():
 
         p.configureDebugVisualizer(p.COV_ENABLE_RENDERING, 0)
 
-        p.loadURDF('assets/plane/plane.urdf', (0, 0, -0.001))
+        p.loadURDF('assets/plane/plane.urdf', (0, 0, -0.001)) # prevent z-fighting
         p.loadURDF('assets/ur5/workspace.urdf', (0.5, 0, 0))
 
         self.ur5 = p.loadURDF('assets/ur5/ur5.urdf')
         # self.ee = self.task.ee(self.ur5, 9, self.obj_ids)
         # self.ee_tip = 10
 
-        from packages.load_gripper import Gripper, Generic
         self.ee = 9  # Use correct link index for 'ee_link' in your URDF
         self.gripper = Generic(self.ur5, self.ee, self.obj_ids)
         self.ee_tip = 10

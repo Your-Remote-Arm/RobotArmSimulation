@@ -1,6 +1,7 @@
 # RobotArmSimulation
 
 ### Installation (On ArchLinux)
+#### Note: replace 'profile' with your terminal profile
 
 Install miniconda for easy package management
 ```
